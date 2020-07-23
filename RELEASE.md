@@ -29,6 +29,7 @@
     pipelines.
 *   Added experimental TFX Pipeline Recorder to record output artifacts of the
     pipeline.
+*   Supported custom extractors in Evaluator.
 
 
 ## Bug fixes and other changes

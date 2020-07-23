@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from typing import Any, Callable, Dict, Text
+from typing import Any, Callable, Dict, Optional, Text
 
 from tfx.utils import import_utils
 
@@ -28,11 +28,15 @@ _MODULE_FILE_KEY = 'module_file'
 
 # TODO(b/157155972): improve user code support.
 def get_fn(exec_properties: Dict[Text, Any],
-           fn_name: Text) -> Callable[..., Any]:
+           fn_name: Text,
+           is_optional: bool = False) -> Optional[Callable[..., Any]]:
   """Loads and returns user-defined function."""
 
   has_module_file = bool(exec_properties.get(_MODULE_FILE_KEY))
   has_fn = bool(exec_properties.get(fn_name))
+
+  if is_optional and not has_module_file and not has_fn:
+    return None
 
   if has_module_file == has_fn:
     raise ValueError(
@@ -40,8 +44,14 @@ def get_fn(exec_properties: Dict[Text, Any],
         "in 'exec_properties'.")
 
   if has_module_file:
-    return import_utils.import_func_from_source(
-        exec_properties[_MODULE_FILE_KEY], fn_name)
+    try:
+      return import_utils.import_func_from_source(
+          exec_properties[_MODULE_FILE_KEY], fn_name)
+    except IOError:
+      if is_optional:
+        return None
+      else:
+        raise
 
   fn_path_split = exec_properties[fn_name].split('.')
   return import_utils.import_func_from_module('.'.join(fn_path_split[0:-1]),
